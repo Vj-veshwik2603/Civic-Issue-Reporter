@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Civic Reporter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-dark-bg min-h-screen p-8 transition-colors duration-300">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-500/30">
+                    <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 dark:text-white">City Governance Analytics</h1>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                 <button id="themeToggle" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition">
+                    <i data-lucide="sun" id="sunIcon" class="w-5 h-5 hidden"></i>
+                    <i data-lucide="moon" id="moonIcon" class="w-5 h-5"></i>
+                </button>
+                <a href="/logout" class="bg-white dark:bg-dark-surface px-4 py-2 rounded-lg shadow-sm border dark:border-dark-border text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center gap-2">
+                    Logout <i data-lucide="log-out" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white dark:bg-dark-surface p-6 rounded-xl shadow-sm border border-gray-100 dark:border-dark-border hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Reports</h3>
+                <p class="text-3xl font-bold text-gray-800 dark:text-white mt-1">{{ total_issues }}</p>
+            </div>
+            
+            <div class="bg-white dark:bg-dark-surface p-6 rounded-xl shadow-sm border border-gray-100 dark:border-dark-border hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600 dark:text-purple-400">
+                        <i data-lucide="check-circle" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium">Resolved Issues</h3>
+                <p class="text-3xl font-bold text-gray-800 dark:text-white mt-1">{{ resolved_count }}</p>
+            </div>
+
+            <div class="bg-white dark:bg-dark-surface p-6 rounded-xl shadow-sm border border-gray-100 dark:border-dark-border hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400">
+                        <i data-lucide="alert-circle" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium">Critical Issues (High)</h3>
+                <p class="text-3xl font-bold text-gray-800 dark:text-white mt-1">{{ critical_count }}</p>
+            </div>
+
+            <div class="bg-white dark:bg-dark-surface p-6 rounded-xl shadow-sm border border-gray-100 dark:border-dark-border hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600 dark:text-green-400">
+                        <i data-lucide="building" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium">Top Department</h3>
+                <p class="text-3xl font-bold text-gray-800 dark:text-white mt-1">{{ top_dept }}</p>
+            </div>
+        </div>
+
+        <!-- High Priority Section -->
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">High Priority Issues</h2>
+        <div class="bg-white dark:bg-dark-surface rounded-xl shadow-sm border border-gray-100 dark:border-dark-border overflow-hidden">
+            {% if high_priority_issues %}
+            <table class="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+                <thead class="bg-gray-50 dark:bg-gray-800 text-xs uppercase font-medium text-gray-500 dark:text-gray-400">
+                    <tr>
+                        <th class="px-6 py-4">Title</th>
+                        <th class="px-6 py-4">Department</th>
+                        <th class="px-6 py-4">Date</th>
+                        <th class="px-6 py-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for issue in high_priority_issues %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ issue.title }}</td>
+                        <td class="px-6 py-4">{{ issue.assigned_department }}</td>
+                        <td class="px-6 py-4">{{ issue.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded-full text-xs font-bold 
+                                {% if issue.status == 'Resolved' %} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300
+                                {% else %} bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 {% endif %}">
+                                {{ issue.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+                <i data-lucide="check-circle" class="w-12 h-12 mx-auto mb-3 text-green-500 opacity-50"></i>
+                <p>No high priority issues at the moment.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        lucide.createIcons();
+
+        // Dark Mode Logic
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+        
+        function setDarkTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            setDarkTheme(true);
+        } else {
+            setDarkTheme(false);
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            setDarkTheme(!isDark);
+            localStorage.setItem('color-theme', !isDark ? 'dark' : 'light');
+        });
+    </script>
+</body>
+</html>

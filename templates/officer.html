@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Dashboard - Civic Reporter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-dark-bg min-h-screen flex flex-col transition-colors duration-300">
+    <nav class="bg-white dark:bg-dark-surface shadow-sm border-b dark:border-dark-border px-6 py-4 flex justify-between items-center z-20">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2 rounded-lg">
+                <i data-lucide="shield" class="w-5 h-5"></i>
+            </div>
+            <h1 class="text-xl font-bold text-gray-800 dark:text-white">Officer Dashboard</h1>
+        </div>
+        <div class="flex items-center gap-4">
+             <button id="themeToggle" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition">
+                <i data-lucide="sun" id="sunIcon" class="w-5 h-5 hidden"></i>
+                <i data-lucide="moon" id="moonIcon" class="w-5 h-5"></i>
+            </button>
+            <a href="/logout" class="text-red-500 hover:text-red-700 dark:text-red-400 font-medium text-sm flex items-center gap-1">
+                Logout <i data-lucide="log-out" class="w-4 h-4"></i>
+            </a>
+        </div>
+    </nav>
+    
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar / List -->
+        <div class="w-1/3 bg-white dark:bg-dark-surface border-r dark:border-dark-border overflow-y-auto flex flex-col shadow-lg z-10">
+            <div class="p-4 border-b dark:border-dark-border bg-gray-50 dark:bg-gray-800/50">
+                <h2 class="font-bold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide">Pending Issues</h2>
+            </div>
+            <div class="p-4 space-y-4">
+                {% for issue in issues %}
+                <div class="group bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:shadow-md hover:border-blue-300 dark:hover:border-blue-500 transition duration-200" 
+                    onclick="handleIssueClick(this)"
+                    data-lat="{{ issue.latitude }}" 
+                    data-lng="{{ issue.longitude }}" 
+                    data-title="{{ issue.title }}">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full 
+                            {% if issue.severity == 'High' %} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300
+                            {% elif issue.severity == 'Medium' %} bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300
+                            {% else %} bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 {% endif %}">
+                            {{ issue.severity }} Priority
+                        </span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ issue.created_at.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">{{ issue.title }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{{ issue.description }}</p>
+                    <div class="flex flex-col gap-2 pt-3 border-t dark:border-gray-700" onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-3">
+                                <span class="flex items-center gap-1 min-w-[60px]"><i data-lucide="alert-triangle" class="w-3 h-3"></i> {{ issue.risk_level }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select onchange="updateIssue({{ issue.id }}, 'severity', this.value)" class="text-[10px] bg-gray-100 dark:bg-gray-700 border-none rounded px-2 py-1 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                                    <option value="Low" {% if issue.severity == 'Low' %}selected{% endif %}>Low</option>
+                                    <option value="Medium" {% if issue.severity == 'Medium' %}selected{% endif %}>Med</option>
+                                    <option value="High" {% if issue.severity == 'High' %}selected{% endif %}>High</option>
+                                </select>
+                                {% if issue.status != 'Resolved' %}
+                                <button onclick="updateIssue({{ issue.id }}, 'status', 'Resolved')" class="text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-2 py-1 rounded hover:bg-green-200 dark:hover:bg-green-900/60 transition">
+                                    Resolve
+                                </button>
+                                {% else %}
+                                <span class="text-[10px] font-bold text-green-600 dark:text-green-500 px-2">✓ Resolved</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Map View -->
+        <div class="w-2/3 relative bg-gray-100 dark:bg-gray-900">
+            <div id="map" class="h-full w-full z-0"></div>
+            <!-- Floating overlay for map controls could go here -->
+        </div>
+    </div>
+
+    <script id="issues-data" type="application/json">
+        [
+            {% for issue in issues %}
+            {
+                "lat": {{ issue.latitude | tojson }},
+                "lng": {{ issue.longitude | tojson }},
+                "title": {{ issue.title | tojson }},
+                "desc": {{ issue.description | tojson }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    </script>
+    <script>
+        lucide.createIcons();
+        
+        // Dark Mode & Map Logic
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+        
+        function setDarkTheme(isDark) {
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        // Init Theme
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            setDarkTheme(true);
+        } else {
+            setDarkTheme(false);
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            const isDark = document.documentElement.classList.contains('dark');
+            setDarkTheme(!isDark);
+            localStorage.setItem('color-theme', !isDark ? 'dark' : 'light');
+        });
+
+        // Initialize Map
+        const map = L.map('map').setView([22.7196, 75.8577], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const issuesData = JSON.parse(document.getElementById('issues-data').textContent);
+
+        issuesData.forEach(issue => {
+            if (issue.lat && issue.lng && (issue.lat !== 0 || issue.lng !== 0)) {
+                L.marker([issue.lat, issue.lng])
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="font-sans">
+                            <h3 class="font-bold text-gray-900">${issue.title}</h3>
+                            <p class="text-sm text-gray-600 mt-1">${issue.desc}</p>
+                        </div>
+                    `);
+            }
+        });
+
+        function handleIssueClick(element) {
+            const lat = parseFloat(element.getAttribute('data-lat'));
+            const lng = parseFloat(element.getAttribute('data-lng'));
+            const title = element.getAttribute('data-title');
+            if (!isNaN(lat) && !isNaN(lng)) {
+                focusMap(lat, lng, title);
+            }
+        }
+
+        function focusMap(lat, lng, title) {
+            map.flyTo([lat, lng], 16, {
+                animate: true,
+                duration: 1.5
+            });
+        }
+
+        async function updateIssue(id, field, value) {
+            try {
+                const payload = {};
+                payload[field] = value;
+                
+                const response = await fetch(`/api/issue/${id}/update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    // Simple reload to reflect changes (could use toast/DOM update for smoother UX)
+                    window.location.reload(); 
+                } else {
+                    alert('Failed to update issue');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error updating issue');
+            }
+        }
+    </script>
+</body>
+</html>
